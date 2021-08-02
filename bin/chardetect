@@ -1,4 +1,4 @@
-#!/home/jacques/dev/interPunction/bin/python3
+#!/home/jacques/dev/interpunction/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

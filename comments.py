@@ -3,17 +3,35 @@ import time
 import json
 import csv
 from gtts import gTTS
+import pyttsx3
 from playsound import playsound
 from io import BytesIO
+import time
+import threading
+try:
+    # python 2.x
+    import Tkinter as tk
+except ImportError:
+    # python 3.x
+    import tkinter as tk
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup as bs
 
 
+# engine = pyttsx3.init()
+# voices = engine.getProperty("voices")
+# for voice in voices:
+#     print(voice, voice.id)
+#
+# engine.setProperty('voice', 'dutch')
+# engine.say("hello everyone")
+# engine.runAndWait()
 with open('facebook_credentials.txt') as file:
     EMAIL = file.readline().split('"')[1]
     PASSWORD = file.readline().split('"')[1]
+
 
 
 
@@ -24,40 +42,38 @@ def _extract_html(bs_data):
 
     k = bs_data.find_all(class_="kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x c1et5uql")
     postBigDict = list()
-
+    k.pop(0)
+    k.pop(0)
     for item in k:
-        print(item.text)
-        if(len(item.text)>100):
-            language = 'nl'
-
-            # Passing the text and language to the engine,
-            # here we have marked slow=False. Which tells
-            # the module that the converted audio should
-            # have a high speed
-            tts = gTTS(text=item.text, lang=language)
+        # print(item.text)
+        text = item.text
+        if(len(text)>100):
+            tts = gTTS(text, lang=language)
 
             tts.save("comment.mp3")
             #
+            frame.add_text(text)
             playsound('comment.mp3')
-        #print(item.find_elements_by_xpath(".//*").text)
-        #postDict = dict()
-        #postDict['Comments'] = _extract_comments(item)
-
-        #Add to check
-        #postBigDict.append(postDict)
-        #with open('./postBigDict.json','w', encoding='utf-8') as file:
-        #    file.write(json.dumps(postBigDict, ensure_ascii=False).encode('utf-8').decode())
-
+            pass
+            # words = item.text.split()
+            # # easier to show words
+            # for word in words:
+            #     tts = gTTS(word, lang=language)
+            #     tts.save("comment.mp3")
+            #     playsound('comment.mp3')
+            #     pass
     return postBigDict
 
 
 def _login(browser, email, password):
     browser.get("http://facebook.com")
     browser.maximize_window()
+    browser.find_element_by_xpath('//button[@data-testid="cookie-policy-dialog-accept-button"]').click()
     browser.find_element_by_name("email").send_keys(email)
     browser.find_element_by_name("pass").send_keys(password)
-    browser.find_element_by_id('u_0_d').click()
-    time.sleep(5)
+    # browser.find_element_by_id('u_0_d_jk').click()
+    browser.find_element_by_xpath('//button').click()
+    time.sleep(1)
 
 
 def _count_needed_scrolls(browser, infinite_scroll, numOfPost):
@@ -84,7 +100,7 @@ def _scroll(browser, infinite_scroll, lenOfPage):
 
         # wait for the browser to load, this time can be changed slightly ~3 seconds with no difference, but 5 seems
         # to be stable enough
-        time.sleep(5)
+        time.sleep(1)
 
         if infinite_scroll:
             lenOfPage = browser.execute_script(
@@ -124,11 +140,14 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
     if scrape_comment:
         #second set comment ranking to show all comments
         #rankDropdowns = browser.find_elements_by_class_name('h3fqq6jp hcukyx3x oygrvhab cxmmr5t8 kvgmc6g5 j83agx80 bp9cbjyn') #select boxes who have rank dropdowns
-        rankDropdownsXPath = '//div[contains(@class, "h3fqq6jp hcukyx3x oygrvhab cxmmr5t8 kvgmc6g5 j83agx80 bp9cbjyn")]'
+        rankDropdownsXPath = '//div[contains(@class, "bp9cbjyn j83agx80 kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x h3fqq6jp")]'
         rankDropdowns = browser.find_elements_by_xpath(rankDropdownsXPath)
         #print(rankDropdowns)
-        rankXPath = '//div[contains(@class, "bp9cbjyn j83agx80 btwxx1t3 buofh1pr i1fnvgqd hpfvmrgz")]'
+        rankXPath = '//div[contains(@class, "j83agx80 cbu4d94t ew0dbk1b irj2b8pg")]'
+        print(rankDropdowns)
+        i = 0
         for rankDropdown in rankDropdowns:
+
             #click to open the filter modal
             action = webdriver.common.action_chains.ActionChains(browser)
 
@@ -136,18 +155,29 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
                 action.move_to_element_with_offset(rankDropdown, 5, 5)
                 action.perform()
                 rankDropdown.click()
-            except:
-                pass
+                time.sleep(.5)
+                try:
+                    action.move_by_offset(0, -20)    # 10px to the right, 20px to bottom
+                    action.click()
+                    action.perform()
+                    # ranked_unfiltered = browser.find_elements_by_xpath(rankXPath) # RANKED_UNFILTERED => (All Comments)
+                    # action.move_to_element_with_offset(ranked_unfiltered[i], 0, 0)
+                    # action.perform()
+                    # ranked_unfiltered[i].click()
+                    # i = i + 1
+                except Exception as e:
+                    print(e)
+                    print("niet gevonden")
+                    # pass
+            except Exception as e:
+                print(e)
+                print("oeps")
+                # pass
 
             # if modal is opened filter comments
-            ranked_unfiltered = browser.find_elements_by_xpath(rankXPath) # RANKED_UNFILTERED => (All Comments)
-            try:
-                action.move_to_element_with_offset(ranked_unfiltered, 5, 5)
-                action.perform()
-                ranked_unfiltered.click()
-            except:
-                pass
 
+
+        time.sleep(10)
         moreCommentsXPath = '//div[contains(@class,"oajrlxb2 bp9cbjyn g5ia77u1 mtkw9kbi tlpljxtp qensuy8j ppp5ayq2 goun2846 ccm00jje s44p3ltw mk2mc5f4 rt8b4zig n8ej3o3l agehan2d sk4xxmp2 rq0escxv nhd2j8a9 pq6dq46d mg4g778l btwxx1t3 g5gj957u p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x tgvbjcpo hpfvmrgz jb3vyjys p8fzw8mz qt6c0cv9 a8nywdso l9j0dhe7 i1ao9s8h esuyzwwr f1sip0of du4w35lb lzcic4wl abiwlrkh gpro0wi8 m9osqain buofh1pr")]'
         moreComments = browser.find_elements_by_xpath(moreCommentsXPath)
         print("Scrolling through to click on more comments")
@@ -170,9 +200,9 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
                         moreComments.remove(link)
                 except:
                     pass
-        seeMoreXPath = '//div[contains(@class,"oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9 nc684nl6 p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl oo9gr5id gpro0wi8 lrazzd5p") and text()="See more"]'
+        seeMoreXPath = '//div[text()="See more"]'
         seeMores = browser.find_elements_by_xpath(seeMoreXPath)
-        print(seeMores)
+        # print(seeMores)
         for seeMore in seeMores:
             #click to open the filter modal
             action = webdriver.common.action_chains.ActionChains(browser)
@@ -183,29 +213,6 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
                 seeMore.click()
             except:
                 pass
-        #first uncollapse collapsed comments
-        # IDEA: search for parent,o
-        # #unCollapseCommentsButtonsXPath = '//div[contains(@class,"oajrlxb2 g5ia77u1 rq0escxv nhd2j8a9 p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl gpro0wi8")]'
-        # unCollapseCommentsButtonsXPath = '//div[contains(@class,"oajrlxb2 g5ia77u1 qu0x051f esr5mh6w e9989ue4 r7d6kgcz rq0escxv nhd2j8a9 nc684nl6 p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x jb3vyjys rz4wbd8a qt6c0cv9 a8nywdso i1ao9s8h esuyzwwr f1sip0of lzcic4wl oo9gr5id gpro0wi8 lrazzd5p")]'
-        # unCollapseCommentsButtons = browser.find_elements_by_xpath(unCollapseCommentsButtonsXPath)
-        # print(unCollapseCommentsButtons)
-        # while len(unCollapseCommentsButtons) > 2:
-        #     for unCollapseComment in unCollapseCommentsButtons:
-        #         action = webdriver.common.action_chains.ActionChains(browser)
-        #         try:
-        #             # move to where the un collapse on is
-        #             action.move_to_element_with_offset(unCollapseComment, 5, 5)
-        #             action.perform()
-        #             unCollapseComment.click()
-        #         except:
-        #             # do nothing right here
-        #             pass
-        #     unCollapseCommentsButtons = browser.find_elements_by_xpath(unCollapseCommentsButtonsXPath)
-        #     for seeMore in unCollapseCommentsButtons[:]:
-        #         if("less" in seeMore.text):
-        #             print(link.text)
-        #             unCollapseCommentsButtons.remove(seeMore)
-        #         pass
 
     # Now that the page is fully scrolled, grab the source code.
     source_data = browser.page_source
@@ -219,22 +226,48 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
     return postBigDict
 
 
+class ShowText(tk.Frame):
+    def __init__(self, *args, **kwargs):
+        tk.Frame.__init__(self, *args, **kwargs)
+
+        self.text = tk.Text(self, height=6, width=40)
+        self.text['background']='black'
+        self.text['foreground']='white'
+        # self.vsb = tk.Scrollbar(self, orient="vertical", command=self.text.yview)
+        # self.text.configure(yscrollcommand=self.vsb.set)
+        # self.vsb.pack(side="right", fill="y")
+        self.text.pack(side="left", fill="both", expand=True)
+    def add_text(self, text):
+        # self.after(100,self.add_timestamp)
+        try:
+        # some code
+
+            text =  text
+            self.text.insert("end", text)
+            self.text.see("end")
+        except KeyboardInterrupt:
+            print ('All done')
+            # If you actually want the program to exit
+            raise
+
+
+
 if __name__ == "__main__":
+    # setup of window
+    root =tk.Tk()
+    root.attributes('-fullscreen', True)
+    root.option_add('*Font', 'Arial 26')
+    frame = ShowText(root)
+    language = 'nl'
     parser = argparse.ArgumentParser(description="Facebook Page Scraper")
-    required_parser = parser.add_argument_group("required arguments")
-    required_parser.add_argument('-page', '-p', help="The Facebook Public Page you want to scrape", required=True)
-    required_parser.add_argument('-len', '-l', help="Number of Posts you want to scrape", type=int, required=True)
     optional_parser = parser.add_argument_group("optional arguments")
     optional_parser.add_argument('-infinite', '-i',
                                  help="Scroll until the end of the page (1 = infinite) (Default is 0)", type=int,
                                  default=0)
     optional_parser.add_argument('-usage', '-u', help="What to do with the data: "
-                                                      "Print on Screen (PS), "
-                                                      "Write to Text File (WT) (Default is WT)", default="CSV")
+                                                  "Print on Screen (PS), "
+                                                  "Write to Text File (WT) (Default is WT)", default="CSV")
 
-    # optional_parser.add_argument('-comments', '-c', help="Scrape ALL Comments of Posts (y/n) (Default is n). When "
-    #                                                      "enabled for pages where there are a lot of comments it can "
-    #                                                      "take a while", default="No")
     args = parser.parse_args()
 
     infinite = False
@@ -245,9 +278,14 @@ if __name__ == "__main__":
     # if args.comments == 'y':
     scrape_comment = True
 
-    postBigDict = extract(page=args.page, numOfPost=args.len, infinite_scroll=infinite, scrape_comment=scrape_comment)
+    # hardcoded page and number of posts
+    # postBigDict = extract(page=args.page, numOfPost=args.len, infinite_scroll=infinite, scrape_comment=scrape_comment)
+    postBigDict = extract(page="https://www.facebook.com/hln.be", numOfPost=1, infinite_scroll=infinite, scrape_comment=scrape_comment)
 
-
+    # loop for showing text
+    frame = ShowText(root)
+    frame.pack(fill="both", expand=True)
+    # root.mainloop()
     #TODO: rewrite parser
     if args.usage == "WT":
         with open('output.txt', 'w') as file:
