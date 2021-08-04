@@ -32,9 +32,6 @@ with open('facebook_credentials.txt') as file:
     EMAIL = file.readline().split('"')[1]
     PASSWORD = file.readline().split('"')[1]
 
-
-
-
 def _extract_html(bs_data):
     #Add to check
     with open('./bs.html',"w", encoding="utf-8") as file:
@@ -47,34 +44,46 @@ def _extract_html(bs_data):
     for item in k:
         # print(item.text)
         text = item.text
-        if(len(text)>100):
+        if "See more..." in text:
+            pass
+        if(len(text)>0):
+            # engine.say(text)
+            # engine.runAndWait()
             tts = gTTS(text, lang=language)
-
             tts.save("comment.mp3")
             #
             frame.add_text(text)
             playsound('comment.mp3')
             pass
-            # words = item.text.split()
-            # # easier to show words
-            # for word in words:
-            #     tts = gTTS(word, lang=language)
-            #     tts.save("comment.mp3")
-            #     playsound('comment.mp3')
-            #     pass
     return postBigDict
 
 
 def _login(browser, email, password):
     browser.get("http://facebook.com")
-    browser.maximize_window()
-    browser.find_element_by_xpath('//button[@data-testid="cookie-policy-dialog-accept-button"]').click()
+    try:
+        browser.find_element_by_xpath('//button[@data-testid="cookie-policy-dialog-accept-button"]').click()
+        time.sleep(.5)
+    except Exception as e:
+        pass
+    try:
+        browser.find_element_by_xpath('//button[@data-testid="cookie-policy-dialog-accept-button"]').click()
+        time.sleep(.5)
+    except Exception as e:
+        pass
     browser.find_element_by_name("email").send_keys(email)
+    try:
+        browser.find_element_by_xpath('//button[@data-testid="cookie-policy-dialog-accept-button"]').click()
+        time.sleep(.5)
+    except Exception as e:
+        pass
     browser.find_element_by_name("pass").send_keys(password)
-    # browser.find_element_by_id('u_0_d_jk').click()
+    try:
+        browser.find_element_by_xpath('//button[@data-testid="cookie-policy-dialog-accept-button"]').click()
+        time.sleep(.5)
+    except Exception as e:
+        pass
     browser.find_element_by_xpath('//button').click()
-    time.sleep(1)
-
+    browser.maximize_window()
 
 def _count_needed_scrolls(browser, infinite_scroll, numOfPost):
     if infinite_scroll:
@@ -100,7 +109,7 @@ def _scroll(browser, infinite_scroll, lenOfPage):
 
         # wait for the browser to load, this time can be changed slightly ~3 seconds with no difference, but 5 seems
         # to be stable enough
-        time.sleep(1)
+        time.sleep(.1)
 
         if infinite_scroll:
             lenOfPage = browser.execute_script(
@@ -144,7 +153,7 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
         rankDropdowns = browser.find_elements_by_xpath(rankDropdownsXPath)
         #print(rankDropdowns)
         rankXPath = '//div[contains(@class, "j83agx80 cbu4d94t ew0dbk1b irj2b8pg")]'
-        print(rankDropdowns)
+        # print(rankDropdowns)
         i = 0
         for rankDropdown in rankDropdowns:
 
@@ -155,7 +164,7 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
                 action.move_to_element_with_offset(rankDropdown, 5, 5)
                 action.perform()
                 rankDropdown.click()
-                time.sleep(.5)
+                # time.sleep(.5)
                 try:
                     action.move_by_offset(0, -20)    # 10px to the right, 20px to bottom
                     action.click()
@@ -177,7 +186,7 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
             # if modal is opened filter comments
 
 
-        time.sleep(10)
+        # time.sleep(10)
         moreCommentsXPath = '//div[contains(@class,"oajrlxb2 bp9cbjyn g5ia77u1 mtkw9kbi tlpljxtp qensuy8j ppp5ayq2 goun2846 ccm00jje s44p3ltw mk2mc5f4 rt8b4zig n8ej3o3l agehan2d sk4xxmp2 rq0escxv nhd2j8a9 pq6dq46d mg4g778l btwxx1t3 g5gj957u p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x tgvbjcpo hpfvmrgz jb3vyjys p8fzw8mz qt6c0cv9 a8nywdso l9j0dhe7 i1ao9s8h esuyzwwr f1sip0of du4w35lb lzcic4wl abiwlrkh gpro0wi8 m9osqain buofh1pr")]'
         moreComments = browser.find_elements_by_xpath(moreCommentsXPath)
         print("Scrolling through to click on more comments")
@@ -189,6 +198,7 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
                     action.move_to_element_with_offset(moreComment, 5, 5)
                     action.perform()
                     moreComment.click()
+                    # time.sleep(.5)
                 except:
                     # do nothing right here
                     pass
@@ -196,7 +206,7 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
             for link in moreComments[:]:
                 try:
                     if(link.text=="" or "Hide" in link.text):
-                        print(link.text)
+                        # print(link.text)
                         moreComments.remove(link)
                 except:
                     pass
@@ -214,6 +224,28 @@ def extract(page, numOfPost, infinite_scroll=False, scrape_comment=False):
             except:
                 pass
 
+        seeMores = browser.find_elements_by_xpath(seeMoreXPath)
+        # print(seeMores)
+        for seeMore in seeMores:
+            #click to open the filter modal
+            action = webdriver.common.action_chains.ActionChains(browser)
+
+            try:
+                action.move_to_element_with_offset(seeMore, 5, 5)
+                action.perform()
+                seeMore.click()
+            except:
+                pass
+        for seeMore in seeMores:
+            #click to open the filter modal
+            action = webdriver.common.action_chains.ActionChains(browser)
+
+            try:
+                action.move_to_element_with_offset(seeMore, 5, 5)
+                action.perform()
+                seeMore.click()
+            except:
+                pass
     # Now that the page is fully scrolled, grab the source code.
     source_data = browser.page_source
 
@@ -237,6 +269,7 @@ class ShowText(tk.Frame):
         # self.text.configure(yscrollcommand=self.vsb.set)
         # self.vsb.pack(side="right", fill="y")
         self.text.pack(side="left", fill="both", expand=True)
+        self.add_text("test")
     def add_text(self, text):
         # self.after(100,self.add_timestamp)
         try:
@@ -250,9 +283,24 @@ class ShowText(tk.Frame):
             # If you actually want the program to exit
             raise
 
+def change_voice(engine, language, gender='VoiceGenderFemale'):
+    for voice in engine.getProperty('voices'):
+        if language in voice.name and gender == voice.gender:
+            engine.setProperty('voice', voice.id)
+            return True
+
+    raise RuntimeError("Language '{}' for gender '{}' not found".format(language, gender))
 
 
 if __name__ == "__main__":
+    # text to speech
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+    # to dusplay voices
+    # for voice in engine.getProperty('voices'):
+    #     print(voice)
+    change_voice(engine, "dutch", "male")
+    # engine.setProperty('voice', voices[17].id)
     # setup of window
     root =tk.Tk()
     root.attributes('-fullscreen', True)
@@ -280,31 +328,32 @@ if __name__ == "__main__":
 
     # hardcoded page and number of posts
     # postBigDict = extract(page=args.page, numOfPost=args.len, infinite_scroll=infinite, scrape_comment=scrape_comment)
-    postBigDict = extract(page="https://www.facebook.com/hln.be", numOfPost=1, infinite_scroll=infinite, scrape_comment=scrape_comment)
 
     # loop for showing text
     frame = ShowText(root)
     frame.pack(fill="both", expand=True)
-    # root.mainloop()
+    root.mainloop()
+
+    postBigDict = extract(page="https://www.facebook.com/hln.be", numOfPost=1, infinite_scroll=infinite, scrape_comment=scrape_comment)
     #TODO: rewrite parser
-    if args.usage == "WT":
-        with open('output.txt', 'w') as file:
-            for post in postBigDict:
-                file.write(json.dumps(post))  # use json load to recover
-
-    elif args.usage == "CSV":
-        with open('data.csv', 'w',) as csvfile:
-           writer = csv.writer(csvfile)
-           #writer.writerow(['Post', 'Link', 'Image', 'Comments', 'Reaction'])
-           writer.writerow(['Post', 'Link', 'Image', 'Comments', 'Shares'])
-
-           for post in postBigDict:
-              writer.writerow([post['Post'], post['Link'],post['Image'], post['Comments'], post['Shares']])
-              #writer.writerow([post['Post'], post['Link'],post['Image'], post['Comments'], post['Reaction']])
-
-    else:
-        for post in postBigDict:
-            print(post)
-    # while True:
-    #     pass
-    print("Finished")
+    # if args.usage == "WT":
+    #     with open('output.txt', 'w') as file:
+    #         for post in postBigDict:
+    #             file.write(json.dumps(post))  # use json load to recover
+    #
+    # elif args.usage == "CSV":
+    #     with open('data.csv', 'w',) as csvfile:
+    #        writer = csv.writer(csvfile)
+    #        #writer.writerow(['Post', 'Link', 'Image', 'Comments', 'Reaction'])
+    #        writer.writerow(['Post', 'Link', 'Image', 'Comments', 'Shares'])
+    #
+    #        for post in postBigDict:
+    #           writer.writerow([post['Post'], post['Link'],post['Image'], post['Comments'], post['Shares']])
+    #           #writer.writerow([post['Post'], post['Link'],post['Image'], post['Comments'], post['Reaction']])
+    #
+    # else:
+    #     for post in postBigDict:
+    #         print(post)
+    # # while True:
+    # #     pass
+    # print("Finished")
