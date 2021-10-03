@@ -25,7 +25,7 @@ class FacebookComments:
         #     print(voice)
         self.change_voice(engine, self.language, "male")
 
-        self.extract(browser, "https://www.facebook.com/hln.be",1)
+        self.extract(browser, "https://www.facebook.com/hln.be",30)
 
     def change_voice(self, engine, language, gender):
         # for voice in engine.getProperty('voices'):
@@ -41,8 +41,12 @@ class FacebookComments:
             file.write(str(bs_data.prettify()))
         k = bs_data.find_all(class_="kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x c1et5uql")
         postBigDict = list()
-        k.pop(0)
-        k.pop(0)
+        if len(k) > 0:
+            k.pop(0)
+            pass
+        if len(k) > 0:
+            k.pop(0)
+            pass
         for item in k:
             # print(item.text)
             text = item.text + " "
@@ -54,10 +58,13 @@ class FacebookComments:
                 pass
     def speak(self, text):
         tts = gTTS(text, lang="nl")
-        tts.save("comment.mp3")
-        #
-        # frame.add_text(text)
-        playsound('comment.mp3')
+        try:
+            tts.save("comment.mp3")
+            #
+            # frame.add_text(text)
+            playsound('comment.mp3')
+        except:
+            pass
 
     def _count_needed_scrolls(self, browser, numOfPost):
         lenOfPage = int(numOfPost / 8)
@@ -104,11 +111,11 @@ class FacebookComments:
                     action.move_by_offset(0, -20)    # 10px to the right, 20px to bottom
                     action.click()
                     action.perform()
-                    # ranked_unfiltered = browser.find_elements_by_xpath(rankXPath) # RANKED_UNFILTERED => (All Comments)
-                    # action.move_to_element_with_offset(ranked_unfiltered[i], 0, 0)
-                    # action.perform()
-                    # ranked_unfiltered[i].click()
-                    # i = i + 1
+                    ranked_unfiltered = browser.find_elements_by_xpath(rankXPath) # RANKED_UNFILTERED => (All Comments)
+                    action.move_to_element_with_offset(ranked_unfiltered[i], 0, 0)
+                    action.perform()
+                    ranked_unfiltered[i].click()
+                    i = i + 1
                 except Exception as e:
                     print(e)
                     print("niet gevonden")
@@ -124,10 +131,11 @@ class FacebookComments:
         print("Load more comments")
         self.queue.put("inladen commentaar")
         self.speak("inladen commentaar")
-        moreCommentsXPath = '//div[contains(@class,"oajrlxb2 bp9cbjyn g5ia77u1 mtkw9kbi tlpljxtp qensuy8j ppp5ayq2 goun2846 ccm00jje s44p3ltw mk2mc5f4 rt8b4zig n8ej3o3l agehan2d sk4xxmp2 rq0escxv nhd2j8a9 pq6dq46d mg4g778l btwxx1t3 g5gj957u p7hjln8o kvgmc6g5 cxmmr5t8 oygrvhab hcukyx3x tgvbjcpo hpfvmrgz jb3vyjys p8fzw8mz qt6c0cv9 a8nywdso l9j0dhe7 i1ao9s8h esuyzwwr f1sip0of du4w35lb lzcic4wl abiwlrkh gpro0wi8 m9osqain buofh1pr")]'
+        moreCommentsXPath = '//span[contains(@class,"d2edcug0 hpfvmrgz qv66sw1b c1et5uql b0tq1wua a8c37x1j keod5gw0 nxhoafnm aigsh9s9 d9wwppkn fe6kdd0r mau55g9w c8b282yb hrzyx87i jq4qci2q a3bd9o3v lrazzd5p m9osqain") and contains(text(), "View")]'
         moreComments = browser.find_elements_by_xpath(moreCommentsXPath)
         print("Scrolling through to click on more comments")
-        # to this for max 1 minute
+        # do this for max 1 minute
+        print(moreComments)
         t_end = time.time() + 60 * 1
         while len(moreComments) != 0 and time.time() < t_end:
             for moreComment in moreComments:
@@ -172,7 +180,9 @@ class FacebookComments:
 
         lenOfPage = self._count_needed_scrolls(browser, numOfPost)
         self._scroll(browser, lenOfPage)
+        self.show_all_comments(browser)
         self.load_more_comments(browser)
+
         self.click_see_more(browser)
         self.click_see_more(browser)
         # Now that the page is fully scrolled, grab the source code.
@@ -276,15 +286,16 @@ class ShowText(tk.Frame):
     def __init__(self, master, queue, end_command):
         self.queue = queue
         self.master = master
-        master.text = tk.Text(master, height=6, width=40, highlightthickness = 0, borderwidth=0)
+        master.text = tk.Text(master, height=6, width=40, highlightthickness = 0, borderwidth=0, wrap=tk.WORD)
         master.text.tag_configure("centerText", justify='center')
         master.text['background']='black'
         master.text['foreground']='white'
         # master.text.config(anchor=tk.CENTER)
-        master.text.pack(side="top", fill="both", expand=True, padx= "25",pady= "150")
+        master.text.pack(side="top", fill="both", expand=True, padx= "25",pady= "250")
     def clearToTextInput(self):
         self.master.text.delete("1.0","end")
     def add_text(self, text):
+        print(text)
         self.clearToTextInput()
         try:
         # some code
